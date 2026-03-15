@@ -1,6 +1,6 @@
 # AutoRondas 9-9
 
-Extensión de Chrome para automatizar el flujo de trabajo de consultas en [Umasalud](https://profesionales.umasalud.com).
+Extensión de Chrome para automatizar el flujo de trabajo de consultas en consultas medicas virtuales
 
 ## Funcionalidades
 
