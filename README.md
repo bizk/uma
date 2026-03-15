@@ -1,4 +1,4 @@
-# AutoRondas 9-9
+# AutoRondas Uma bot
 
 Extensión de Chrome para automatizar el flujo de trabajo de consultas en consultas medicas virtuales
 
