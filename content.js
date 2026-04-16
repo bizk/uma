@@ -344,11 +344,47 @@
     return results;
   }
 
+  function getButtonPriority(el) {
+    const rect = el.getBoundingClientRect();
+    const isRetomar = isRetomarEl(el);
+    const isInsideViewport =
+      rect.bottom > 0 &&
+      rect.right > 0 &&
+      rect.top < window.innerHeight &&
+      rect.left < window.innerWidth;
+
+    return {
+      isRetomar,
+      isInsideViewport,
+      top: rect.top,
+      left: rect.left,
+    };
+  }
+
   function pickTargetButton(list) {
     if (list.length === 0) return null;
     if (list.length === 1) return list[0];
-    if (list.length === 2) return list[1];
-    return list[list.length - 1];
+
+    const rankedButtons = [...list].sort((buttonA, buttonB) => {
+      const priorityA = getButtonPriority(buttonA);
+      const priorityB = getButtonPriority(buttonB);
+
+      if (priorityA.isRetomar !== priorityB.isRetomar) {
+        return Number(priorityA.isRetomar) - Number(priorityB.isRetomar);
+      }
+
+      if (priorityA.isInsideViewport !== priorityB.isInsideViewport) {
+        return Number(priorityB.isInsideViewport) - Number(priorityA.isInsideViewport);
+      }
+
+      if (priorityA.top !== priorityB.top) {
+        return priorityA.top - priorityB.top;
+      }
+
+      return priorityA.left - priorityB.left;
+    });
+
+    return rankedButtons[0];
   }
 
   function dispatchClick(el) {
