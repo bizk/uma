@@ -319,6 +319,44 @@
     return containsAny(text, POS_RETOMAR);
   }
 
+  function getActionText(el) {
+    return [
+      el.textContent || "",
+      el.getAttribute("aria-label") || "",
+      el.getAttribute("title") || "",
+    ].join(" ");
+  }
+
+  function isStartOrResumeEl(el) {
+    return containsAny(getActionText(el), [...POS_COMENZAR, ...POS_RETOMAR]);
+  }
+
+  function isDirectActionButton(el) {
+    const role = (el.getAttribute("role") || "").toLowerCase();
+    const ariaLabel = norm(el.getAttribute("aria-label") || "");
+    const title = norm(el.getAttribute("title") || "");
+    const tagName = el.tagName.toLowerCase();
+
+    if (role === "button" && (containsAny(ariaLabel, POS_COMENZAR) || containsAny(ariaLabel, POS_RETOMAR))) return true;
+    if (containsAny(title, POS_COMENZAR) || containsAny(title, POS_RETOMAR)) return true;
+    return tagName === "button" && !containsAny(norm(el.textContent || ""), NEG);
+  }
+
+  function hasNestedActionButton(el) {
+    const nestedNodes = el.querySelectorAll('button, a, [role="button"]');
+
+    for (let i = 0; i < nestedNodes.length; i++) {
+      const nestedEl = nestedNodes[i];
+      if (nestedEl === el) continue;
+      if (!isVisible(nestedEl)) continue;
+      if (!isStartOrResumeEl(nestedEl)) continue;
+      if (containsAny(getActionText(nestedEl), NEG)) continue;
+      return true;
+    }
+
+    return false;
+  }
+
   // === Selección y clic ===
   function getComenzarRetomarButtons() {
     const nodes = document.querySelectorAll('button, a, [role="button"]');
@@ -326,14 +364,12 @@
 
     for (let i = 0; i < nodes.length; i++) {
       const el = nodes[i];
-      const rawText = el.textContent || "";
-      const lowerText = rawText.toLowerCase();
-
-      if (lowerText.indexOf("comenzar") === -1 && lowerText.indexOf("retomar") === -1) continue;
+      if (!isStartOrResumeEl(el)) continue;
       if (!isVisible(el)) continue;
 
-      const fullText = rawText + " " + (el.getAttribute("aria-label") || "") + " " + (el.getAttribute("title") || "");
+      const fullText = getActionText(el);
       if (containsAny(fullText, NEG)) continue;
+      if (hasNestedActionButton(el)) continue;
 
       results.push(el);
     }
@@ -347,6 +383,8 @@
   function getButtonPriority(el) {
     const rect = el.getBoundingClientRect();
     const isRetomar = isRetomarEl(el);
+    const isDirectAction = isDirectActionButton(el);
+    const area = rect.width * rect.height;
     const isInsideViewport =
       rect.bottom > 0 &&
       rect.right > 0 &&
@@ -355,7 +393,9 @@
 
     return {
       isRetomar,
+      isDirectAction,
       isInsideViewport,
+      area,
       top: rect.top,
       left: rect.left,
     };
@@ -373,8 +413,16 @@
         return Number(priorityA.isRetomar) - Number(priorityB.isRetomar);
       }
 
+      if (priorityA.isDirectAction !== priorityB.isDirectAction) {
+        return Number(priorityB.isDirectAction) - Number(priorityA.isDirectAction);
+      }
+
       if (priorityA.isInsideViewport !== priorityB.isInsideViewport) {
         return Number(priorityB.isInsideViewport) - Number(priorityA.isInsideViewport);
+      }
+
+      if (priorityA.area !== priorityB.area) {
+        return priorityA.area - priorityB.area;
       }
 
       if (priorityA.top !== priorityB.top) {
